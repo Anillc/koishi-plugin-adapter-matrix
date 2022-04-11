@@ -1,4 +1,4 @@
-# @koishijs/plugin-adapter-matrix
+# koishi-plugin-adapter-matrix
 
 ## 接入方法
 
