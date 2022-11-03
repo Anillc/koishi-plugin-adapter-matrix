@@ -45,7 +45,7 @@ export function adaptSession(bot: MatrixBot, event: Matrix.ClientEvent) {
       case 'm.audio':
       case 'm.video': {
         const url = bot.internal.getAssetUrl((content as any).url)
-        session.content = segment(content.msgtype.substring(2), { url })
+        session.content = segment(content.msgtype.substring(2), { url }).toString()
         break
       }
       default: return
@@ -92,5 +92,5 @@ export function dispatchSession(bot: MatrixBot, event: Matrix.ClientEvent) {
   const session = new Session(bot, payload)
   defineProperty(session, 'matrix', Object.create(bot.internal))
   Object.assign(session.matrix, event)
-  bot.adapter.dispatch(session)
+  bot.dispatch(session)
 }

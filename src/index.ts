@@ -1,6 +1,4 @@
-import { Adapter } from 'koishi'
 import { MatrixBot } from './bot'
-import { HttpAdapter } from './http'
 import * as Matrix from './types'
 
 declare module 'koishi' {
@@ -9,4 +7,4 @@ declare module 'koishi' {
   }
 }
 
-export default Adapter.define('matrix', MatrixBot, HttpAdapter)
+export default MatrixBot

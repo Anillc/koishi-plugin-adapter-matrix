@@ -1,15 +1,14 @@
-import { Adapter } from 'koishi'
-import { Context } from 'koa'
+import { Adapter, Context } from 'koishi'
+import { Context as KoaContext } from 'koa'
 import { BotConfig, MatrixBot } from './bot'
 import { AdapterConfig, dispatchSession } from './utils'
 import { ClientEvent } from './types'
 
-export class HttpAdapter extends Adapter<MatrixBot, AdapterConfig> {
-  static schema = BotConfig
+export class HttpAdapter extends Adapter.Server<MatrixBot> {
   private txnId: string = null
 
-  start() {
-    const router = this.ctx.router.use((ctx, next) => {
+  fork(ctx: Context, bot: MatrixBot) {
+    const router = ctx.router.use((ctx, next) => {
       const bot = this.bots.find(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
       if (!bot) {
         ctx.body = { errcode: 'M_FORBIDDEN' }
@@ -18,11 +17,11 @@ export class HttpAdapter extends Adapter<MatrixBot, AdapterConfig> {
       ctx.bot = bot
       next()
     })
-    const put = (path: string, callback: (ctx: Context) => void) => {
+    const put = (path: string, callback: (ctx: KoaContext) => void) => {
       router.put(path, callback.bind(this))
       router.put('/_matrix/app/v1' + path, callback.bind(this))
     }
-    const get = (path: string, callback: (ctx: Context) => void) => {
+    const get = (path: string, callback: (ctx: KoaContext) => void) => {
       router.get(path, callback.bind(this))
       router.get('/_matrix/app/v1' + path, callback.bind(this))
     }
@@ -30,8 +29,6 @@ export class HttpAdapter extends Adapter<MatrixBot, AdapterConfig> {
     get('/users/:userId', this.users)
     get('/room/:roomAlias', this.rooms)
   }
-
-  stop() { }
 
   async connect(bot: MatrixBot): Promise<void> {
     try {
@@ -43,7 +40,7 @@ export class HttpAdapter extends Adapter<MatrixBot, AdapterConfig> {
     bot.avatar = avatar
   }
 
-  private transactions(ctx: Context) {
+  private transactions(ctx: KoaContext) {
     const { txnId } = ctx.params
     const events = ctx.request.body.events as ClientEvent[]
     ctx.body = {}
@@ -54,11 +51,11 @@ export class HttpAdapter extends Adapter<MatrixBot, AdapterConfig> {
     }
   }
 
-  private users(ctx: Context) {
+  private users(ctx: KoaContext) {
     ctx.body = {}
   }
 
-  private rooms(ctx: Context) {
+  private rooms(ctx: KoaContext) {
     ctx.body = {}
   }
 }

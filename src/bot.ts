@@ -1,7 +1,8 @@
-import { Adapter, Bot, omit, Quester, Schema, segment } from 'koishi'
+import { Adapter, Bot, Context, omit, Quester, Schema, segment } from 'koishi'
+import { HttpAdapter } from './http'
 import * as Matrix from './types'
 
-export interface BotConfig extends Bot.BaseConfig, Quester.Config {
+export interface BotConfig extends Bot.Config, Quester.Config {
   selfId?: string
   hsToken?: string
   asToken?: string
@@ -24,14 +25,14 @@ export class MatrixBot extends Bot<BotConfig> {
     userId: string
     endpoint: string
     internal: Matrix.Internal
-    constructor(adapter: Adapter, config: BotConfig) {
-      super(adapter, config)
+    constructor(ctx: Context, config: BotConfig) {
+      super(ctx, config)
       this.selfId = config.selfId
       this.hsToken = config.hsToken
       this.host = config.host
       this.userId = `@${this.selfId}:${this.host}`
       this.endpoint = config.endpoint || `https://${config.host}`
-      this.http = this.app.http.extend({
+      this.http = this.ctx.http.extend({
         ...config,
         endpoint: this.endpoint + '/_matrix',
         headers: {
@@ -39,6 +40,7 @@ export class MatrixBot extends Bot<BotConfig> {
         },
       })
       this.internal = new Matrix.Internal(this)
+      ctx.plugin(HttpAdapter, config)
     }
 
     async sendMessage(channelId: string, content: string, guildId?: string): Promise<string[]> {
@@ -50,14 +52,14 @@ export class MatrixBot extends Bot<BotConfig> {
         const session = await this.session({ content, channelId, subtype: 'group' })
         const id = await this.internal.sendTextMessage(channelId, this.userId, content, reply)
         session.messageId = id
-        this.app.emit(session, 'send', session)
+        this.ctx.emit(session, 'send', session)
         return id
       }
       const sendMedia = async (url, type) => {
-        const session = await this.session({ content, channelId, subtype: 'group' })
+        const session = this.session({ content, channelId, subtype: 'group' })
         const id = await this.internal.sendMediaMessage(channelId, this.userId, type, url)
         session.messageId = id
-        this.app.emit(session, 'send', session)
+        this.ctx.emit(session, 'send', session)
         return id
       }
       for (const seg of segs) {
@@ -91,7 +93,7 @@ export class MatrixBot extends Bot<BotConfig> {
       return ids
     }
 
-    async getMessage(channelId: string, messageId: string): Promise<Bot.Message> {
+    async getMessage(channelId: string, messageId: string) {
       const event = await this.internal.getEvent(channelId, messageId)
       const content = event.content as Matrix.M_ROOM_MESSAGE
       const replyId = content['m.relates_to']?.['m.in_reply_to']
@@ -111,11 +113,11 @@ export class MatrixBot extends Bot<BotConfig> {
       }
     }
 
-    async getSelf(): Promise<Bot.User> {
+    async getSelf() {
       return await this.getUser(this.userId)
     }
 
-    async getUser(userId: string): Promise<Bot.User> {
+    async getUser(userId: string) {
       const profile = await this.internal.getProfile(userId)
       let avatar: string
       if (profile.avatar_url) avatar = this.internal.getAssetUrl(profile.avatar_url)
@@ -127,7 +129,7 @@ export class MatrixBot extends Bot<BotConfig> {
       }
     }
 
-    async getChannel(channelId: string, guildId?: string): Promise<Bot.Channel> {
+    async getChannel(channelId: string, guildId?: string) {
       return {
         channelId,
       }
