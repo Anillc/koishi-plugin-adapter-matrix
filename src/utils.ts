@@ -1,4 +1,4 @@
-import { defineProperty, segment, Session } from 'koishi'
+import { defineProperty, segment, Session } from '@satorijs/satori'
 import { MatrixBot } from './bot'
 import * as Matrix from './types'
 
@@ -89,7 +89,7 @@ export function dispatchSession(bot: MatrixBot, event: Matrix.ClientEvent) {
   const payload = adaptSession(bot, event)
   if (!payload) return
 
-  const session = new Session(bot, payload)
+  const session = bot.session(payload)
   defineProperty(session, 'matrix', Object.create(bot.internal))
   Object.assign(session.matrix, event)
   bot.dispatch(session)

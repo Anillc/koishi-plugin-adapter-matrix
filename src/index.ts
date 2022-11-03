@@ -1,7 +1,7 @@
 import { MatrixBot } from './bot'
 import * as Matrix from './types'
 
-declare module 'koishi' {
+declare module '@satorijs/satori' {
   interface Session {
       matrix: Matrix.Internal & Matrix.ClientEvent
   }

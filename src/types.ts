@@ -1,4 +1,3 @@
-import { Quester } from 'koishi'
 import { MatrixBot } from './bot'
 
 export interface Transaction {
@@ -358,22 +357,14 @@ export class Internal {
     return response.event_id
   }
 
-  async sendMediaMessage(roomId: string, userId: string, type: 'file' | 'image' | 'video' | 'audio', url: string, filename: string = 'file'): Promise<string> {
-    let data: Buffer
-    if (url.startsWith('base64://')) {
-      data = Buffer.from(url.substring(9), 'base64')
-    } else {
-      data = (await this.bot.http.axios(url, {
-        method: 'GET',
-        responseType: 'arraybuffer',
-      })).data
-    }
-    const { content_uri } = await this.bot.http.post(`/media/v3/upload?filename=${filename}`, data)
+  async sendMediaMessage(roomId: string, userId: string, type: 'file' | 'image' | 'video' | 'audio', buffer: ArrayBuffer | Buffer, reply?: string, filename: string = 'file'): Promise<string> {
+    const { content_uri } = await this.bot.http.post(`/media/v3/upload?filename=${filename}`, buffer)
     const eventContent = {
       msgtype: `m.${type}`,
       body: filename,
       url: content_uri,
     }
+    if (reply) eventContent['m.relates_to'] = { 'm.in_reply_to': { 'event_id': reply } }
     const response = await this.bot.http.put(
       `/client/v3/rooms/${roomId}/send/m.room.message/${this.txnId++}?user_id=${userId}`, eventContent)
     return response.event_id
@@ -388,10 +379,10 @@ export class Internal {
   }
 
   async register(username: string): Promise<User> {
-      return await this.bot.http.post('/client/v3/register', {
-        type: 'm.login.application_service',
-        username,
-      })
+    return await this.bot.http.post('/client/v3/register', {
+      type: 'm.login.application_service',
+      username,
+    })
   }
 
   getAssetUrl(mxc: string) {

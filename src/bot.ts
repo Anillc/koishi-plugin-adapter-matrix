@@ -1,5 +1,6 @@
-import { Adapter, Bot, Context, omit, Quester, Schema, segment } from 'koishi'
+import { Bot, Context, omit, Quester, Schema, Fragment, Universal } from '@satorijs/satori'
 import { HttpAdapter } from './http'
+import { MatrixModulator } from './modulator'
 import * as Matrix from './types'
 
 export interface BotConfig extends Bot.Config, Quester.Config {
@@ -40,64 +41,31 @@ export class MatrixBot extends Bot<BotConfig> {
         },
       })
       this.internal = new Matrix.Internal(this)
-      ctx.plugin(HttpAdapter, config)
+      ctx.plugin(HttpAdapter, this)
     }
 
-    async sendMessage(channelId: string, content: string, guildId?: string): Promise<string[]> {
-      const segs = segment.parse(content)
-      const ids = []
-      let text = ''
-      let reply = null
-      const sendText = async (content) => {
-        const session = await this.session({ content, channelId, subtype: 'group' })
-        const id = await this.internal.sendTextMessage(channelId, this.userId, content, reply)
-        session.messageId = id
-        this.ctx.emit(session, 'send', session)
-        return id
+    async initialize() {
+      try {
+        await this.internal.register(this.selfId)
+      } catch (e) {
+        if (e.response.status !== 400 && e.data.errcode !== 'M_USER_IN_USE') throw e
       }
-      const sendMedia = async (url, type) => {
-        const session = this.session({ content, channelId, subtype: 'group' })
-        const id = await this.internal.sendMediaMessage(channelId, this.userId, type, url)
-        session.messageId = id
-        this.ctx.emit(session, 'send', session)
-        return id
-      }
-      for (const seg of segs) {
-        switch (seg.type) {
-          case 'text':
-            text += seg.data.content
-            break
-          case 'at':
-          case 'sharp':
-            text += seg.data.id
-            break
-          case 'face': // unsupported
-            break
-          case 'image':
-          case 'audio':
-          case 'video':
-          case 'file':
-            if (text) ids.push(await sendText(text))
-            text = ''
-            ids.push(await sendMedia(seg.data.url, seg.type))
-            break
-          case 'quote': {
-            const message = await this.getMessage(channelId, seg.data.id)
-            reply = seg.data.id
-            text += `> <${message.userId}> ${message.content}\n\n`
-            break
-          }
-        }
-      }
-      if (text) ids.push(await sendText(text))
-      return ids
+      this.avatar = (await this.getUser(this.userId)).avatar
     }
 
-    async getMessage(channelId: string, messageId: string) {
+    async sendMessage(channelId: string, content: Fragment, guildId?: string): Promise<string[]> {
+      return new MatrixModulator(this, channelId, guildId).send(content)
+    }
+
+    async sendPrivateMessage(channelId: string, content: Fragment) {
+      return new MatrixModulator(this, channelId).send(content)
+    }
+
+    async getMessage(channelId: string, messageId: string): Promise<Universal.Message> {
       const event = await this.internal.getEvent(channelId, messageId)
       const content = event.content as Matrix.M_ROOM_MESSAGE
       const replyId = content['m.relates_to']?.['m.in_reply_to']
-      let reply
+      let reply: Universal.Message
       if (replyId) reply = await this.getMessage(channelId, replyId)
       return {
         messageId,
@@ -135,3 +103,5 @@ export class MatrixBot extends Bot<BotConfig> {
       }
     }
 }
+
+MatrixBot.prototype.platform = 'matrix'

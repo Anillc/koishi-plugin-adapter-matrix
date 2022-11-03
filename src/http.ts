@@ -1,13 +1,20 @@
-import { Adapter, Context } from 'koishi'
+import { Adapter, Context } from '@satorijs/satori'
 import { Context as KoaContext } from 'koa'
-import { BotConfig, MatrixBot } from './bot'
-import { AdapterConfig, dispatchSession } from './utils'
+import { MatrixBot } from './bot'
+import { dispatchSession } from './utils'
 import { ClientEvent } from './types'
+
+declare module 'koa' {
+  interface Context {
+    bot: MatrixBot
+  }
+}
 
 export class HttpAdapter extends Adapter.Server<MatrixBot> {
   private txnId: string = null
 
-  fork(ctx: Context, bot: MatrixBot) {
+  public constructor(ctx: Context) {
+    super()
     const router = ctx.router.use((ctx, next) => {
       const bot = this.bots.find(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
       if (!bot) {
@@ -30,14 +37,9 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
     get('/room/:roomAlias', this.rooms)
   }
 
-  async connect(bot: MatrixBot): Promise<void> {
-    try {
-      await bot.internal.register(bot.selfId)
-    } catch (e) {
-      if (e.response.status !== 400) throw e
-    }
-    const { avatar } = await bot.getUser(bot.userId)
-    bot.avatar = avatar
+  async start(bot: MatrixBot): Promise<void> {
+    await bot.initialize()
+    bot.online()
   }
 
   private transactions(ctx: KoaContext) {
@@ -47,6 +49,7 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
     if (txnId === this.txnId) return
     this.txnId = txnId
     for (const event of events) {
+      if (event.sender === ctx.bot.userId) continue
       dispatchSession(ctx.bot, event)
     }
   }

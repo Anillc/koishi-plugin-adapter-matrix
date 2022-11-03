@@ -16,7 +16,7 @@ namespaces:
     regex: '@koishi:matrix.example.com' # 你的 bot 的 userId
   aliases:
   - exclusive: false
-    regex: '#koishi_*:matrix.example.com' # 此处填写匹配你的 bot 管理的 room 的 id 的正则表达式
+    regex: '#koishi_.*:matrix.example.com' # 此处填写匹配你的 bot 管理的 room 的 id 的正则表达式
   rooms: []
 ```
 
