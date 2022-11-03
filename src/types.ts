@@ -117,6 +117,10 @@ export interface User {
   user_id?: string
 }
 
+export interface RoomId {
+  room_id: string
+}
+
 export interface EventContent {}
 
 export interface M_ROOM_CANONICAL_ALIAS extends EventContent {
@@ -378,10 +382,36 @@ export class Internal {
     return await this.bot.http.get(`/client/v3/profile/${userId}`)
   }
 
+  async joinRoom(roomId: string, botToken: string, reason?: string): Promise<RoomId> {
+    return await this.bot.http.post(`/client/v3/join/${roomId}`, { reason }, {
+      headers: {
+        'Authorization': `Bearer ${botToken}`
+      }
+    })
+  }
+
+  async leaveRoom(roomId: string, botToken: string, reason?: string): Promise<RoomId> {
+    return await this.bot.http.post(`/client/v3/rooms/${roomId}/leave`, { reason }, {
+      headers: {
+        'Authorization': `Bearer ${botToken}`
+      }
+    })
+  }
+
   async register(username: string): Promise<User> {
     return await this.bot.http.post('/client/v3/register', {
       type: 'm.login.application_service',
       username,
+    })
+  }
+
+  async login(username: string): Promise<User> {
+    return await this.bot.http.post('/client/v3/login', {
+      type: 'm.login.application_service',
+      identifier: {
+        type: 'm.id.user',
+        user: username,
+      }
     })
   }
 

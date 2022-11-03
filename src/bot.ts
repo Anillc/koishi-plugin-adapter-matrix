@@ -26,6 +26,7 @@ export class MatrixBot extends Bot<BotConfig> {
     userId: string
     endpoint: string
     internal: Matrix.Internal
+    botToken: string
     constructor(ctx: Context, config: BotConfig) {
       super(ctx, config)
       this.selfId = config.selfId
@@ -45,11 +46,14 @@ export class MatrixBot extends Bot<BotConfig> {
     }
 
     async initialize() {
+      let user: Matrix.User
       try {
-        await this.internal.register(this.selfId)
+        user = await this.internal.register(this.selfId)
       } catch (e) {
         if (e.response.status !== 400 && e.data.errcode !== 'M_USER_IN_USE') throw e
       }
+      if (!user) user = await this.internal.login(this.selfId)
+      this.botToken = user.access_token
       this.avatar = (await this.getUser(this.userId)).avatar
     }
 
@@ -100,6 +104,15 @@ export class MatrixBot extends Bot<BotConfig> {
     async getChannel(channelId: string, guildId?: string) {
       return {
         channelId,
+      }
+    }
+
+    // as utils.ts commented, messageId is roomId
+    async handleGuildRequest(messageId: string, approve: boolean, commit: string) {
+      if (approve) {
+        await this.internal.joinRoom(messageId, this.botToken, commit)
+      } else {
+        await this.internal.leaveRoom(messageId, this.botToken, commit)
       }
     }
 }

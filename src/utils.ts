@@ -74,6 +74,15 @@ export function adaptSession(bot: MatrixBot, event: Matrix.ClientEvent) {
           session.type = 'group-member'
           session.subtype = 'ban'
           break
+        case 'invite':
+          if (event.state_key === bot.userId) {
+            session.type = 'guild-request'
+            // Use room_id instead messageId because handleGuildRequest Only passes messageId.
+            // We need room_id and messageId to call getMessage and get the room_id.
+            // So I decided to pass room_id directly.
+            session.messageId = event.room_id
+            break
+          }
         default:
           session.type = event.type
       }
