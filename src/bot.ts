@@ -4,23 +4,8 @@ import { MatrixModulator } from './modulator'
 import * as Matrix from './types'
 import { dispatchSession } from './utils'
 
-export interface BotConfig extends Bot.Config, Quester.Config {
-  selfId?: string
-  hsToken?: string
-  asToken?: string
-  host?: string
-}
 
-export const BotConfig = Schema.object({
-  selfId: Schema.string().description('机器人的 ID。').required(),
-  host: Schema.string().description('Matrix homeserver 域名。').required(),
-  hsToken: Schema.string().description('hs_token').required(),
-  asToken: Schema.string().description('as_token').required(),
-  endpoint: Schema.string().description('Matrix homeserver 地址。默认为 https://${host}。'),
-  ...omit(Quester.Config.dict, ['endpoint']),
-}).description('机器人最后的用户名将会是 @${selfID}:${host}。')
-
-export class MatrixBot extends Bot<BotConfig> {
+export class MatrixBot extends Bot<MatrixBot.Config> {
     http: Quester
     hsToken: string
     asToken: string
@@ -30,7 +15,7 @@ export class MatrixBot extends Bot<BotConfig> {
     internal: Matrix.Internal
     botToken: string
     rooms: string[] = []
-    constructor(ctx: Context, config: BotConfig) {
+    constructor(ctx: Context, config: MatrixBot.Config) {
       super(ctx, config)
       this.selfId = config.selfId
       this.hsToken = config.hsToken
@@ -144,6 +129,24 @@ export class MatrixBot extends Bot<BotConfig> {
       this.rooms = Object.keys(sync.rooms.join)
       return sync
     }
+}
+
+export namespace MatrixBot {
+  export interface Config extends Bot.Config, Quester.Config {
+    selfId?: string
+    hsToken?: string
+    asToken?: string
+    host?: string
+  }
+
+  export const Config = Schema.object({
+    selfId: Schema.string().description('机器人的 ID。机器人最后的用户名将会是 @${selfID}:${host}。').required(),
+    host: Schema.string().description('Matrix homeserver 域名。').required(),
+    hsToken: Schema.string().description('hs_token').role('secret').required(),
+    asToken: Schema.string().description('as_token').role('secret').required(),
+    endpoint: Schema.string().description('Matrix homeserver 地址。默认为 https://${host}。'),
+    ...omit(Quester.Config.dict, ['endpoint']),
+  })
 }
 
 MatrixBot.prototype.platform = 'matrix'

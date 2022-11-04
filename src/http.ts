@@ -1,7 +1,7 @@
 import { Adapter, Context, Logger } from '@satorijs/satori'
 import { Context as KoaContext } from 'koa'
 import { MatrixBot } from './bot'
-import { adaptSession, dispatchSession } from './utils'
+import { dispatchSession } from './utils'
 import { ClientEvent, M_ROOM_MEMBER } from './types'
 
 declare module 'koa' {
@@ -15,24 +15,27 @@ const logger = new Logger('matrix')
 export class HttpAdapter extends Adapter.Server<MatrixBot> {
   private txnId: string = null
 
-  public constructor(ctx: Context) {
-    super()
-    const router = ctx.router.use((ctx, next) => {
+  hook(callback: (ctx: KoaContext) => void) {
+    return (ctx: KoaContext) => {
       const bots = this.bots.filter(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
       if (!bots.length) {
         ctx.body = { errcode: 'M_FORBIDDEN' }
         return
       }
       ctx.bots = bots
-      next()
-    })
+      callback.call(this, ctx)
+    }
+  }
+
+  public constructor(ctx: Context) {
+    super()
     const put = (path: string, callback: (ctx: KoaContext) => void) => {
-      router.put(path, callback.bind(this))
-      router.put('/_matrix/app/v1' + path, callback.bind(this))
+      ctx.router.put(path, this.hook(callback).bind(this))
+      ctx.router.put('/_matrix/app/v1' + path, this.hook(callback).bind(this))
     }
     const get = (path: string, callback: (ctx: KoaContext) => void) => {
-      router.get(path, callback.bind(this))
-      router.get('/_matrix/app/v1' + path, callback.bind(this))
+      ctx.router.get(path, this.hook(callback).bind(this))
+      ctx.router.get('/_matrix/app/v1' + path, this.hook(callback).bind(this))
     }
     put('/transactions/:txnId', this.transactions)
     get('/users/:userId', this.users)
