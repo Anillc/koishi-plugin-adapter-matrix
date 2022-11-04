@@ -18,6 +18,7 @@ export function adaptSession(bot: MatrixBot, event: Matrix.ClientEvent) {
   }
   if (event.type === 'm.room.message') {
     session.type = 'message'
+    session.subtype = 'group'
     const content = (event.content as Matrix.M_ROOM_MESSAGE)
     switch (content.msgtype) {
       case 'm.text':
