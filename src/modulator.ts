@@ -8,9 +8,9 @@ export class MatrixModulator extends Modulator<MatrixBot> {
   async sendMedia(url: string, type: 'file' | 'image' | 'video' | 'audio') {
     try {
       const session = this.bot.session(this.session)
-      const { data, filename } = await this.bot.ctx.http.file(url)
+      const { data, filename, mime } = await this.bot.ctx.http.file(url)
       const id = await this.bot.internal.sendMediaMessage(
-        this.channelId, this.bot.userId, type, data, this.reply?.messageId, filename
+        this.channelId, this.bot.userId, type, Buffer.from(data), this.reply?.messageId, mime, filename
       )
       session.messageId = id
       this.results.push(session)
@@ -80,13 +80,13 @@ export class MatrixModulator extends Modulator<MatrixBot> {
     } else if ((type === 'image' || type === 'video' || type === 'record' || type === 'file') && attrs.url) {
       await this.flush()
       const matrixType = type === 'record' ? 'audio' : type
-      this.sendMedia(attrs.url, matrixType)
+      await this.sendMedia(attrs.url, matrixType)
     // } else if (type === 'figure') {
       // TODO
     } else if (type === 'quote') {
       this.reply = await this.bot.getMessage(this.channelId, attrs.id)
     } else if (type === 'message') {
-      this.render(children)
+      await this.render(children)
     } else {
       await this.render(children)
     }

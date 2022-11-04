@@ -1,3 +1,4 @@
+import imageSize from 'image-size'
 import { MatrixBot } from './bot'
 
 export interface Transaction {
@@ -64,7 +65,7 @@ export interface ImageInfo {
   thumbnail_file?: any
   thumbnail_info?: ThumbnailInfo
   thumbnail_url?: string
-  w?: string
+  w?: number
 }
 
 export interface FileInfo {
@@ -361,12 +362,22 @@ export class Internal {
     return response.event_id
   }
 
-  async sendMediaMessage(roomId: string, userId: string, type: 'file' | 'image' | 'video' | 'audio', buffer: ArrayBuffer | Buffer, reply?: string, filename: string = 'file'): Promise<string> {
+  async sendMediaMessage(roomId: string, userId: string, type: 'file' | 'image' | 'video' | 'audio', buffer: Buffer, reply?: string, mimetype?: string, filename: string = 'file'): Promise<string> {
     const { content_uri } = await this.bot.http.post(`/media/v3/upload?filename=${filename}`, buffer)
+    let info: ImageInfo = undefined
+    if (type === 'image') {
+      const { width, height } = imageSize(buffer)
+      info = {
+        size: buffer.byteLength,
+        h: height, w: width,
+        mimetype,
+      }
+    }
     const eventContent = {
       msgtype: `m.${type}`,
       body: filename,
       url: content_uri,
+      info,
     }
     if (reply) eventContent['m.relates_to'] = { 'm.in_reply_to': { 'event_id': reply } }
     const response = await this.bot.http.put(
