@@ -21,6 +21,7 @@ export class MatrixModulator extends Modulator<MatrixBot> {
   }
 
   async flush() {
+    if (!this.buffer) return
     try {
       const session = this.bot.session(this.session)
       if (this.reply) {
@@ -81,12 +82,11 @@ export class MatrixModulator extends Modulator<MatrixBot> {
       await this.flush()
       const matrixType = type === 'record' ? 'audio' : type
       await this.sendMedia(attrs.url, matrixType)
-    // } else if (type === 'figure') {
-      // TODO
     } else if (type === 'quote') {
       this.reply = await this.bot.getMessage(this.channelId, attrs.id)
     } else if (type === 'message') {
-      await this.render(children)
+      await this.flush()
+      await this.render(children, true)
     } else {
       await this.render(children)
     }

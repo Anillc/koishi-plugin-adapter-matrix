@@ -22,6 +22,7 @@ export const BotConfig = Schema.object({
 export class MatrixBot extends Bot<BotConfig> {
     http: Quester
     hsToken: string
+    asToken: string
     host: string
     userId: string
     endpoint: string
@@ -31,16 +32,10 @@ export class MatrixBot extends Bot<BotConfig> {
       super(ctx, config)
       this.selfId = config.selfId
       this.hsToken = config.hsToken
+      this.asToken = config.asToken
       this.host = config.host
       this.userId = `@${this.selfId}:${this.host}`
-      this.endpoint = config.endpoint || `https://${config.host}`
-      this.http = this.ctx.http.extend({
-        ...config,
-        endpoint: this.endpoint + '/_matrix',
-        headers: {
-          'Authorization': `Bearer ${config.asToken}`,
-        },
-      })
+      this.endpoint = (config.endpoint || `https://${config.host}`) + '/_matrix'
       this.internal = new Matrix.Internal(this)
       ctx.plugin(HttpAdapter, this)
     }
@@ -48,11 +43,18 @@ export class MatrixBot extends Bot<BotConfig> {
     async initialize() {
       let user: Matrix.User
       try {
-        user = await this.internal.register(this.selfId)
+        user = await this.internal.register(this.selfId, this.asToken)
       } catch (e) {
         if (e.response.status !== 400 && e.data.errcode !== 'M_USER_IN_USE') throw e
       }
-      if (!user) user = await this.internal.login(this.selfId)
+      if (!user) user = await this.internal.login(this.selfId, this.asToken)
+      this.http = this.ctx.http.extend({
+        ...this.config,
+        endpoint: this.endpoint,
+        headers: {
+          'Authorization': `Bearer ${user.access_token}`,
+        },
+      })
       this.botToken = user.access_token
       this.avatar = (await this.getUser(this.userId)).avatar
     }
@@ -110,9 +112,9 @@ export class MatrixBot extends Bot<BotConfig> {
     // as utils.ts commented, messageId is roomId
     async handleGuildRequest(messageId: string, approve: boolean, commit: string) {
       if (approve) {
-        await this.internal.joinRoom(messageId, this.botToken, commit)
+        await this.internal.joinRoom(messageId, commit)
       } else {
-        await this.internal.leaveRoom(messageId, this.botToken, commit)
+        await this.internal.leaveRoom(messageId, commit)
       }
     }
 }

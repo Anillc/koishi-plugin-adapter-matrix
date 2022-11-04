@@ -393,35 +393,35 @@ export class Internal {
     return await this.bot.http.get(`/client/v3/profile/${userId}`)
   }
 
-  async joinRoom(roomId: string, botToken: string, reason?: string): Promise<RoomId> {
-    return await this.bot.http.post(`/client/v3/join/${roomId}`, { reason }, {
-      headers: {
-        'Authorization': `Bearer ${botToken}`
-      }
-    })
+  async joinRoom(roomId: string, reason?: string): Promise<RoomId> {
+    return await this.bot.http.post(`/client/v3/join/${roomId}`, { reason })
   }
 
-  async leaveRoom(roomId: string, botToken: string, reason?: string): Promise<RoomId> {
-    return await this.bot.http.post(`/client/v3/rooms/${roomId}/leave`, { reason }, {
-      headers: {
-        'Authorization': `Bearer ${botToken}`
-      }
-    })
+  async leaveRoom(roomId: string, reason?: string): Promise<RoomId> {
+    return await this.bot.http.post(`/client/v3/rooms/${roomId}/leave`, { reason })
   }
 
-  async register(username: string): Promise<User> {
-    return await this.bot.http.post('/client/v3/register', {
+  async register(username: string, asToken: string): Promise<User> {
+    return await this.bot.ctx.http.post(this.bot.endpoint + '/client/v3/register', {
       type: 'm.login.application_service',
       username,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${asToken}`
+      }
     })
   }
 
-  async login(username: string): Promise<User> {
-    return await this.bot.http.post('/client/v3/login', {
+  async login(username: string, asToken: string): Promise<User> {
+    return await this.bot.ctx.http.post(this.bot.endpoint + '/client/v3/login', {
       type: 'm.login.application_service',
       identifier: {
         type: 'm.id.user',
         user: username,
+      }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${asToken}`
       }
     })
   }

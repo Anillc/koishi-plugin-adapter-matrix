@@ -1,4 +1,4 @@
-import { Adapter, Context } from '@satorijs/satori'
+import { Adapter, Context, Logger } from '@satorijs/satori'
 import { Context as KoaContext } from 'koa'
 import { MatrixBot } from './bot'
 import { dispatchSession } from './utils'
@@ -9,6 +9,8 @@ declare module 'koa' {
     bot: MatrixBot
   }
 }
+
+const logger = new Logger('matrix')
 
 export class HttpAdapter extends Adapter.Server<MatrixBot> {
   private txnId: string = null
@@ -38,8 +40,13 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
   }
 
   async start(bot: MatrixBot): Promise<void> {
-    await bot.initialize()
-    bot.online()
+    try {
+      await bot.initialize()
+      bot.online()
+    } catch(e) {
+      logger.error('failed to initialize', e)
+      throw e
+    }
   }
 
   private transactions(ctx: KoaContext) {
