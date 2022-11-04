@@ -2,6 +2,7 @@ import { Bot, Context, omit, Quester, Schema, Fragment, Universal } from '@sator
 import { HttpAdapter } from './http'
 import { MatrixModulator } from './modulator'
 import * as Matrix from './types'
+import { dispatchSession } from './utils'
 
 export interface BotConfig extends Bot.Config, Quester.Config {
   selfId?: string
@@ -28,6 +29,7 @@ export class MatrixBot extends Bot<BotConfig> {
     endpoint: string
     internal: Matrix.Internal
     botToken: string
+    rooms: string[] = []
     constructor(ctx: Context, config: BotConfig) {
       super(ctx, config)
       this.selfId = config.selfId
@@ -57,6 +59,15 @@ export class MatrixBot extends Bot<BotConfig> {
       })
       this.botToken = user.access_token
       this.avatar = (await this.getUser(this.userId)).avatar
+      const sync = await this.syncRooms()
+      // dispatch invitiations
+      if (!sync?.rooms?.invite) return
+      setTimeout(() => Object.entries(sync.rooms.invite).forEach(([roomId, room]) => {
+        const event = room.invite_state.events.find(event =>
+          event.type === 'm.room.member' && (event.content as Matrix.M_ROOM_MEMBER).membership === 'invite')
+        event.room_id = roomId
+        dispatchSession(this, event)
+      }))
     }
 
     async sendMessage(channelId: string, content: Fragment, guildId?: string): Promise<string[]> {
@@ -103,10 +114,15 @@ export class MatrixBot extends Bot<BotConfig> {
       }
     }
 
-    async getChannel(channelId: string, guildId?: string) {
+    async getChannel(channelId: string) {
       return {
         channelId,
       }
+    }
+    
+    // TODO
+    async getChannelList(): Promise<Universal.Channel[]> {
+      return null
     }
 
     // as utils.ts commented, messageId is roomId
@@ -116,6 +132,14 @@ export class MatrixBot extends Bot<BotConfig> {
       } else {
         await this.internal.leaveRoom(messageId, commit)
       }
+      this.syncRooms()
+    }
+
+    async syncRooms() {
+      const sync = await this.internal.sync(true)
+      if (!sync?.rooms?.join) return
+      this.rooms = Object.keys(sync.rooms.join)
+      return sync
     }
 }
 

@@ -1,4 +1,5 @@
 import imageSize from 'image-size'
+import { Dict } from '@satorijs/satori'
 import { MatrixBot } from './bot'
 
 export interface Transaction {
@@ -120,6 +121,93 @@ export interface User {
 
 export interface RoomId {
   room_id: string
+}
+
+export interface Sync {
+  account_data?: AccountData
+  // device_lists? // end to end
+  // device_one_time_keys_count? // end to end
+  next_batch: string
+  presence?: Presence
+  rooms?: Rooms
+  // to_device? // end to end
+}
+
+export interface AccountData {
+  events?: ClientEvent[]
+}
+
+export interface Presence {
+  events?: ClientEvent[]
+}
+
+export interface Rooms {
+  invite?: Dict<InvitedRoom>
+  join?: Dict<JoinedRoom>
+  knock?: Dict<KnockedRoom>
+  leave?: Dict<LeftRoom>
+}
+
+export interface InvitedRoom {
+  invite_state?: InviteState
+}
+
+export interface InviteState {
+  events?: ClientEvent[]
+}
+
+export interface JoinedRoom {
+  account_data?: AccountData
+  ephemeral?: Ephemeral
+  state?: State
+  summary?: RoomSummary
+  timeline?: Timeline
+  unread_notifications?: UnreadNotificationCounts
+  unread_thread_notifications?: Dict<ThreadNotificationCounts>
+}
+
+export interface Ephemeral {
+  events?: ClientEvent[]
+}
+
+export interface State {
+  events?: ClientEvent[]
+}
+
+export interface RoomSummary {
+  'm.heroes'?: string[]
+  'm.invited_member_count'?: number
+  'm.joined_member_count'?: number
+}
+
+export interface Timeline {
+  events: ClientEvent[]
+  limited?: boolean
+  prev_batch?: string
+}
+
+export interface UnreadNotificationCounts {
+  highlight_count?: number
+  notification_count?: number
+}
+
+export interface ThreadNotificationCounts {
+  highlight_count?: number
+  notification_count?: number
+}
+
+export interface KnockedRoom {
+  knock_state?: KnockState
+}
+
+export interface KnockState {
+  events?: ClientEvent[]
+}
+
+export interface LeftRoom {
+  account_data?: AccountData
+  state?: State
+  timeline?: Timeline
 }
 
 export interface EventContent {}
@@ -399,6 +487,12 @@ export class Internal {
 
   async leaveRoom(roomId: string, reason?: string): Promise<RoomId> {
     return await this.bot.http.post(`/client/v3/rooms/${roomId}/leave`, { reason })
+  }
+
+  async sync(fullSstate: boolean = false): Promise<Sync> {
+    return await this.bot.http.get('/client/v3/sync', {
+      params: { full_state: fullSstate }
+    })
   }
 
   async register(username: string, asToken: string): Promise<User> {

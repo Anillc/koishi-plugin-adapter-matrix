@@ -1,12 +1,12 @@
 import { Adapter, Context, Logger } from '@satorijs/satori'
 import { Context as KoaContext } from 'koa'
 import { MatrixBot } from './bot'
-import { dispatchSession } from './utils'
-import { ClientEvent } from './types'
+import { adaptSession, dispatchSession } from './utils'
+import { ClientEvent, M_ROOM_MEMBER } from './types'
 
 declare module 'koa' {
   interface Context {
-    bot: MatrixBot
+    bots: MatrixBot[]
   }
 }
 
@@ -18,12 +18,12 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
   public constructor(ctx: Context) {
     super()
     const router = ctx.router.use((ctx, next) => {
-      const bot = this.bots.find(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
-      if (!bot) {
+      const bots = this.bots.filter(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
+      if (!bots.length) {
         ctx.body = { errcode: 'M_FORBIDDEN' }
         return
       }
-      ctx.bot = bot
+      ctx.bots = bots
       next()
     })
     const put = (path: string, callback: (ctx: KoaContext) => void) => {
@@ -56,8 +56,15 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
     if (txnId === this.txnId) return
     this.txnId = txnId
     for (const event of events) {
-      if (event.sender === ctx.bot.userId) continue
-      dispatchSession(ctx.bot, event)
+      const bots = ctx.bots.filter(bot => bot.rooms.includes(event.room_id))
+      let bot: MatrixBot
+      if (event.type === 'm.room.member'
+        && (event.content as M_ROOM_MEMBER).membership === 'invite'
+        && (bot = ctx.bots.find(bot => bot.userId === event.state_key))
+        && !bots.includes(bot)) {
+        bots.push(bot)
+      }
+      ctx.bots.forEach(bot => dispatchSession(bot, event))
     }
   }
 
