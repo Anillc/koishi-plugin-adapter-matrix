@@ -495,6 +495,14 @@ export class Internal {
     })
   }
 
+  async getState(roomId: string): Promise<ClientEvent[]> {
+    return await this.bot.http.get(`/client/v3/rooms/${roomId}/state`)
+  }
+
+  async getJoinedRooms(): Promise<string[]> {
+    return await this.bot.http.get('/client/v3/joined_rooms')
+  }
+
   async register(username: string, asToken: string): Promise<User> {
     return await this.bot.ctx.http.post(this.bot.endpoint + '/client/v3/register', {
       type: 'm.login.application_service',

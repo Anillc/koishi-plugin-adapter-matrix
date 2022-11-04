@@ -102,7 +102,7 @@ export class MatrixBot extends Bot<BotConfig> {
       return await this.getUser(this.userId)
     }
 
-    async getUser(userId: string) {
+    async getUser(userId: string): Promise<Universal.User> {
       const profile = await this.internal.getProfile(userId)
       let avatar: string
       if (profile.avatar_url) avatar = this.internal.getAssetUrl(profile.avatar_url)
@@ -114,15 +114,18 @@ export class MatrixBot extends Bot<BotConfig> {
       }
     }
 
-    async getChannel(channelId: string) {
+    async getChannel(channelId: string): Promise<Universal.Channel> {
+      const events = await this.internal.getState(channelId)
+      const channelName = (events.find(event => event.type === 'm.room.name')?.content as Matrix.M_ROOM_NAME)?.name
       return {
         channelId,
+        channelName,
       }
     }
-    
-    // TODO
+
     async getChannelList(): Promise<Universal.Channel[]> {
-      return null
+      const rooms = await this.internal.getJoinedRooms()
+      return await Promise.all(rooms.map(this.getChannel))
     }
 
     // as utils.ts commented, messageId is roomId
