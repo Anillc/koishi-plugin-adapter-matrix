@@ -16,9 +16,9 @@ export const BotConfig = Schema.object({
   host: Schema.string().description('Matrix homeserver 域名。').required(),
   hsToken: Schema.string().description('hs_token').required(),
   asToken: Schema.string().description('as_token').required(),
-  endpoint: Schema.string().description('Matrix homeserver 地址。默认为 https://host 。'),
+  endpoint: Schema.string().description('Matrix homeserver 地址。默认为 https://${host}。'),
   ...omit(Quester.Config.dict, ['endpoint']),
-})
+}).description('机器人最后的用户名将会是 @${selfID}:${host}。')
 
 export class MatrixBot extends Bot<BotConfig> {
     http: Quester
