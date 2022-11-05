@@ -140,7 +140,7 @@ export namespace MatrixBot {
   }
 
   export const Config = Schema.object({
-    selfId: Schema.string().description('机器人的 ID。机器人最后的用户名将会是 @${selfID}:${host}。').required(),
+    selfId: Schema.string().description('机器人的 ID。机器人最后的用户名将会是 @${selfId}:${host}。').required(),
     host: Schema.string().description('Matrix homeserver 域名。').required(),
     hsToken: Schema.string().description('hs_token').role('secret').required(),
     asToken: Schema.string().description('as_token').role('secret').required(),

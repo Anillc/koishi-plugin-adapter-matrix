@@ -9,7 +9,7 @@ id: koishi # id
 hs_token: # hs_token 与 as_token 没有特别的格式要求，请确保不会泄漏
 as_token:
 url: # 你的机器人的地址
-sender_localpart: koishi # sender_localpart
+sender_localpart: koishi # sender_localpart 不能与机器人的 selfId 相同
 namespaces:
   users:
   - exclusive: true
