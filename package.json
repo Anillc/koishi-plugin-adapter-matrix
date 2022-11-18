@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-adapter-matrix",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Matrix Adapter for koishi",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
