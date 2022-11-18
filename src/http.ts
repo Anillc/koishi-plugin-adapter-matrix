@@ -59,7 +59,8 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
     if (txnId === this.txnId) return
     this.txnId = txnId
     for (const event of events) {
-      const bots = ctx.bots.filter(bot => bot.rooms.includes(event.room_id))
+      const bots = ctx.bots
+        .filter(bot => bot.userId !== event.sender && bot.rooms.includes(event.room_id))
       let bot: MatrixBot
       if (event.type === 'm.room.member'
         && (event.content as M_ROOM_MEMBER).membership === 'invite'
@@ -67,7 +68,7 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
         && !bots.includes(bot)) {
         bots.push(bot)
       }
-      ctx.bots.forEach(bot => dispatchSession(bot, event))
+      bots.forEach(bot => dispatchSession(bot, event))
     }
   }
 
