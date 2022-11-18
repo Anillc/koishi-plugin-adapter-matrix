@@ -68,6 +68,10 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
       return await adaptMessage(this, event)
     }
 
+    async deleteMessage(channelId: string, messageId: string) {
+      await this.internal.redactEvent(channelId, messageId)
+    }
+
     async getSelf() {
       return await this.getUser(this.userId)
     }

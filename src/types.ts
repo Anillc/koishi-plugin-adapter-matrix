@@ -488,6 +488,11 @@ export class Internal {
     return await this.bot.http.get(`/client/v3/rooms/${roomId}/event/${eventId}`)
   }
 
+  async redactEvent(roomId: string, eventId: string, reason?: string): Promise<string> {
+    const event = await this.bot.http.put(`/client/v3/rooms/${roomId}/redact/${eventId}/${this.txnId++}`, { reason })
+    return event.event_id
+  }
+
   async getProfile(userId: string): Promise<Profile> {
     return await this.bot.http.get(`/client/v3/profile/${userId}`)
   }
