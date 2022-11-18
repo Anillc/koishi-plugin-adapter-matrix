@@ -2,7 +2,7 @@ import { Bot, Context, omit, Quester, Schema, Fragment, Universal } from '@sator
 import { HttpAdapter } from './http'
 import { MatrixModulator } from './modulator'
 import * as Matrix from './types'
-import { dispatchSession } from './utils'
+import { adaptMessage, dispatchSession } from './utils'
 
 
 export class MatrixBot extends Bot<MatrixBot.Config> {
@@ -65,22 +65,7 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
 
     async getMessage(channelId: string, messageId: string): Promise<Universal.Message> {
       const event = await this.internal.getEvent(channelId, messageId)
-      const content = event.content as Matrix.M_ROOM_MESSAGE
-      const replyId = content['m.relates_to']?.['m.in_reply_to']
-      let reply: Universal.Message
-      if (replyId) reply = await this.getMessage(channelId, replyId)
-      return {
-        messageId,
-        channelId,
-        userId: event.sender,
-        content: content.body,
-        timestamp: event.origin_server_ts,
-        author: {
-          userId: event.sender,
-          username: event.sender,
-        },
-        quote: reply,
-      }
+      return await adaptMessage(this, event)
     }
 
     async getSelf() {

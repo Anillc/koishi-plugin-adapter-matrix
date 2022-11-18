@@ -11,6 +11,7 @@ export interface ClientEvent {
   content: EventContent
   event_id: string
   origin_server_ts: number
+  redacts?: string
   room_id: string
   sender: string
   state_key?: string
@@ -212,6 +213,14 @@ export interface LeftRoom {
 
 export interface EventContent {}
 
+export interface Relation {
+  event_id?: string
+  rel_type?: string
+  'm.in_reply_to'?: {
+    event_id: string
+  }
+}
+
 export interface M_ROOM_CANONICAL_ALIAS extends EventContent {
   alias?: string
   alt_aliases?: string[]
@@ -260,6 +269,8 @@ export interface M_ROOM_REDACTION extends EventContent {
 export interface M_ROOM_MESSAGE extends EventContent {
   body: string
   msgtype: string
+  'm.relates_to'?: Relation
+  'm.new_content'?: M_ROOM_MESSAGE
 }
 
 export interface M_ROOM_MESSAGE_FEEDBACK extends EventContent {
