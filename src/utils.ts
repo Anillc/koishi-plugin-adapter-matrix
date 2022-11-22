@@ -76,20 +76,23 @@ export async function adaptSession(bot: MatrixBot, event: Matrix.ClientEvent): P
       session.messageId = event.redacts
       break
     case 'm.room.member': {
+      bot.syncRooms()
       const memberEvent = event.content as Matrix.M_ROOM_MEMBER
       session.targetId = (memberEvent as any).state_key
       session.operatorId = event.sender
-      session.content = memberEvent.reason
       session.messageId = event.event_id
+      if (memberEvent.reason) {
+        session.content = memberEvent.reason
+      }
       switch (memberEvent.membership) {
         case 'join':
-          session.type = 'group-member-added'
+          session.type = 'guild-member-added'
           break
         case 'leave':
-          session.type = 'group-member-deleted'
+          session.type = 'guild-member-deleted'
           break
         case 'ban':
-          session.type = 'group-member'
+          session.type = 'guild-member'
           session.subtype = 'ban'
           break
         case 'invite':

@@ -88,19 +88,47 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
       }
     }
 
+    async getFriendList(): Promise<Universal.User[]> {
+      return []
+    }
+
+    async deleteFriend(): Promise<void> { }
+
+    async getGuild(guildId: string): Promise<Universal.Guild> {
+      const events = await this.internal.getState(guildId)
+      const guildName = (events.find(event => event.type === 'm.room.name')?.content as Matrix.M_ROOM_NAME)?.name
+      return { guildId, guildName }
+    }
+
     async getChannel(channelId: string): Promise<Universal.Channel> {
       const events = await this.internal.getState(channelId)
       const channelName = (events.find(event => event.type === 'm.room.name')?.content as Matrix.M_ROOM_NAME)?.name
-      return {
-        channelId,
-        channelName,
-      }
+      return { channelId, channelName }
     }
 
-    async getChannelList(): Promise<Universal.Channel[]> {
-      const rooms = await this.internal.getJoinedRooms()
-      return await Promise.all(rooms.map(this.getChannel))
+    async getGuildList(): Promise<Universal.Guild[]> {
+      const sync = await this.syncRooms()
+      const joined = sync?.rooms?.join
+      if (!joined) return []
+      const result: string[] = []
+      for (const [roomId, room] of Object.entries(joined)) {
+        const create = room.state?.events?.find(event => event.type === 'm.room.create')
+        const space = (create?.content as Matrix.M_ROOM_CREATE)?.type === 'm.space'
+        if (space) result.push(roomId)
+      }
+      return await Promise.all(result.map(this.getGuild.bind(this)))
     }
+
+    async getChannelList(guildId: string): Promise<Universal.Channel[]> {
+      const state = await this.internal.getState(guildId)
+      const children = state
+        .filter(event => event.type === 'm.space.child')
+        .map(event => event.state_key)
+        .filter(roomId => this.rooms.includes(roomId))
+      return await Promise.all(children.map(this.getChannel.bind(this)))
+    }
+
+    async handleFriendRequest(): Promise<void> { }
 
     // as utils.ts commented, messageId is roomId
     async handleGuildRequest(messageId: string, approve: boolean, commit: string) {
@@ -112,6 +140,7 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
       this.syncRooms()
     }
 
+    // will be called after m.room.member received
     async syncRooms() {
       const sync = await this.internal.sync(true)
       if (!sync?.rooms?.join) return
