@@ -19,6 +19,7 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
     return (ctx: KoaContext) => {
       const bots = this.bots.filter(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
       if (!bots.length) {
+        ctx.status = 403
         ctx.body = { errcode: 'M_FORBIDDEN' }
         return
       }
@@ -73,10 +74,17 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
   }
 
   private users(ctx: KoaContext) {
+    const { userId } = ctx.params
+    if (!ctx.bots.find(bot => bot.userId === userId)) {
+      ctx.status = 404
+      ctx.body = { 'errcode': 'CHAT.SATORI.NOT_FOUND' }
+      return
+    }
     ctx.body = {}
   }
 
   private rooms(ctx: KoaContext) {
-    ctx.body = {}
+    ctx.status = 404
+    ctx.body = { 'errcode': 'CHAT.SATORI.NOT_FOUND' }
   }
 }

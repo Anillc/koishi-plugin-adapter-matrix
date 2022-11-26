@@ -8,3 +8,4 @@ declare module '@satorijs/satori' {
 }
 
 export default MatrixBot
+export { Matrix }

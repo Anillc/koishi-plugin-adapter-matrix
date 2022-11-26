@@ -450,6 +450,10 @@ export class Internal {
 
   constructor(public bot: MatrixBot) {}
 
+  async uploadFile(filename: string = 'file', buffer: Buffer): Promise<string> {
+    return (await this.bot.http.post(`/media/v3/upload?filename=${filename}`, buffer)).content_uri
+  }
+
   async sendTextMessage(roomId: string, userId: string, content: string, reply?: string): Promise<string> {
     const eventContent: M_TEXT = {
       msgtype: 'm.text',
@@ -462,7 +466,7 @@ export class Internal {
   }
 
   async sendMediaMessage(roomId: string, userId: string, type: 'file' | 'image' | 'video' | 'audio', buffer: Buffer, reply?: string, mimetype?: string, filename: string = 'file'): Promise<string> {
-    const { content_uri } = await this.bot.http.post(`/media/v3/upload?filename=${filename}`, buffer)
+    const uri = await this.uploadFile(filename, buffer)
     let info: ImageInfo = undefined
     if (type === 'image') {
       const { width, height } = imageSize(buffer)
@@ -475,7 +479,7 @@ export class Internal {
     const eventContent = {
       msgtype: `m.${type}`,
       body: filename,
-      url: content_uri,
+      url: uri,
       info,
     }
     if (reply) eventContent['m.relates_to'] = { 'm.in_reply_to': { 'event_id': reply } }
@@ -495,6 +499,15 @@ export class Internal {
 
   async getProfile(userId: string): Promise<Profile> {
     return await this.bot.http.get(`/client/v3/profile/${userId}`)
+  }
+
+  async setDisplayName(userId: string, displayname: string): Promise<void> {
+    await this.bot.http.put(`/client/v3/profile/${userId}/displayname`, { displayname })
+  }
+
+  async setAvatar(userId: string, buffer: Buffer): Promise<void> {
+    const uri = await this.uploadFile('avatar', buffer)
+    await this.bot.http.put(`/client/v3/profile/${userId}/avatar_url`, { avatar_url: uri })
   }
 
   async joinRoom(roomId: string, reason?: string): Promise<RoomId> {

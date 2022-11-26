@@ -42,7 +42,7 @@ export class MatrixModulator extends Modulator<MatrixBot> {
   async visit(element: segment) {
     const { type, attrs, children } = element
     if (type === 'text') {
-      this.buffer += attrs.content.replace(/[\\*_`~|()]/g, '\\$&')
+      this.buffer += attrs.content.replace(/[\\*_`~|]/g, '\\$&')
     } else if (type === 'b' || type === 'strong') {
       this.buffer += '**'
       await this.render(children)
