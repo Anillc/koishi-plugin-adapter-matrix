@@ -17,7 +17,7 @@ export class HttpAdapter extends Adapter.Server<MatrixBot> {
 
   hook(callback: (ctx: KoaContext) => void) {
     return (ctx: KoaContext) => {
-      const bots = this.bots.filter(bot => (bot instanceof MatrixBot) && (bot.hsToken === ctx.query.access_token))
+      const bots = this.bots.filter(bot => (bot instanceof MatrixBot) && (bot.config.hsToken === ctx.query.access_token))
       if (!bots.length) {
         ctx.status = 403
         ctx.body = { errcode: 'M_FORBIDDEN' }

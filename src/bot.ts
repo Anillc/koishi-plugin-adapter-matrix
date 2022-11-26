@@ -7,21 +7,14 @@ import { adaptMessage, dispatchSession } from './utils'
 
 export class MatrixBot extends Bot<MatrixBot.Config> {
     http: Quester
-    hsToken: string
-    asToken: string
-    host: string
     userId: string
     endpoint: string
     internal: Matrix.Internal
-    botToken: string
     rooms: string[] = []
     constructor(ctx: Context, config: MatrixBot.Config) {
       super(ctx, config)
       this.selfId = config.selfId
-      this.hsToken = config.hsToken
-      this.asToken = config.asToken
-      this.host = config.host
-      this.userId = `@${this.selfId}:${this.host}`
+      this.userId = `@${this.selfId}:${this.config.host}`
       this.endpoint = (config.endpoint || `https://${config.host}`) + '/_matrix'
       this.internal = new Matrix.Internal(this)
       ctx.plugin(HttpAdapter, this)
@@ -30,11 +23,11 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
     async initialize() {
       let user: Matrix.User
       try {
-        user = await this.internal.register(this.selfId, this.asToken)
+        user = await this.internal.register(this.selfId, this.config.asToken)
       } catch (e) {
         if (e.response.status !== 400 && e.data.errcode !== 'M_USER_IN_USE') throw e
       }
-      if (!user) user = await this.internal.login(this.selfId, this.asToken)
+      if (!user) user = await this.internal.login(this.selfId, this.config.asToken)
       this.http = this.ctx.http.extend({
         ...this.config,
         endpoint: this.endpoint,
@@ -42,8 +35,14 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
           'Authorization': `Bearer ${user.access_token}`,
         },
       })
-      this.botToken = user.access_token
-      this.avatar = (await this.getUser(this.userId)).avatar
+      if (this.config.name) {
+        await this.internal.setDisplayName(this.userId, this.config.name)
+      }
+      if (this.config.avatar) {
+        const { data, mime } = await this.http.file(this.config.avatar)
+        await this.internal.setAvatar(this.userId, Buffer.from(data), mime)
+      }
+      Object.assign(this, await this.getSelf())
       const sync = await this.syncRooms()
       // dispatch invitiations
       if (!sync?.rooms?.invite) return
@@ -151,6 +150,8 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
 
 export namespace MatrixBot {
   export interface Config extends Bot.Config, Quester.Config {
+    name?: string
+    avatar?: string
     selfId?: string
     hsToken?: string
     asToken?: string
@@ -158,6 +159,8 @@ export namespace MatrixBot {
   }
 
   export const Config = Schema.object({
+    name: Schema.string().description('机器人的名称，如果设置了将会在启动时为机器人更改。'),
+    avatar: Schema.string().description('机器人的头像地址，如果设置了将会在启动时为机器人更改。'),
     selfId: Schema.string().description('机器人的 ID。机器人最后的用户名将会是 @${selfId}:${host}。').required(),
     host: Schema.string().description('Matrix homeserver 域名。').required(),
     hsToken: Schema.string().description('hs_token').role('secret').required(),

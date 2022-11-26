@@ -7,5 +7,5 @@ declare module '@satorijs/satori' {
   }
 }
 
+export * from './types'
 export default MatrixBot
-export { Matrix }

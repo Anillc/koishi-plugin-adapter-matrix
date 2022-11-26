@@ -450,8 +450,10 @@ export class Internal {
 
   constructor(public bot: MatrixBot) {}
 
-  async uploadFile(filename: string = 'file', buffer: Buffer): Promise<string> {
-    return (await this.bot.http.post(`/media/v3/upload?filename=${filename}`, buffer)).content_uri
+  async uploadFile(filename: string = 'file', buffer: Buffer, mimetype?: string): Promise<string> {
+    const headers = {}
+    if (mimetype) headers['content-type'] = mimetype
+    return (await this.bot.http.post(`/media/v3/upload?filename=${filename}`, buffer, { headers })).content_uri
   }
 
   async sendTextMessage(roomId: string, userId: string, content: string, reply?: string): Promise<string> {
@@ -466,7 +468,7 @@ export class Internal {
   }
 
   async sendMediaMessage(roomId: string, userId: string, type: 'file' | 'image' | 'video' | 'audio', buffer: Buffer, reply?: string, mimetype?: string, filename: string = 'file'): Promise<string> {
-    const uri = await this.uploadFile(filename, buffer)
+    const uri = await this.uploadFile(filename, buffer, mimetype)
     let info: ImageInfo = undefined
     if (type === 'image') {
       const { width, height } = imageSize(buffer)
@@ -505,8 +507,8 @@ export class Internal {
     await this.bot.http.put(`/client/v3/profile/${userId}/displayname`, { displayname })
   }
 
-  async setAvatar(userId: string, buffer: Buffer): Promise<void> {
-    const uri = await this.uploadFile('avatar', buffer)
+  async setAvatar(userId: string, buffer: Buffer, mimetype: string): Promise<void> {
+    const uri = await this.uploadFile('avatar', buffer, mimetype)
     await this.bot.http.put(`/client/v3/profile/${userId}/avatar_url`, { avatar_url: uri })
   }
 
