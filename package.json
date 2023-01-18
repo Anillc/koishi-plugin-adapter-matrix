@@ -17,6 +17,9 @@
     "koishi",
     "impl:adapter"
   ],
+  "scripts": {
+    "build": "tsc"
+  },
   "devDependencies": {
     "@types/node": "^17.0.45",
     "typescript": "^4.8.4"
