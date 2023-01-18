@@ -7,14 +7,15 @@ import { adaptMessage, dispatchSession } from './utils'
 
 export class MatrixBot extends Bot<MatrixBot.Config> {
     http: Quester
-    userId: string
+    id: string
     endpoint: string
     internal: Matrix.Internal
     rooms: string[] = []
     constructor(ctx: Context, config: MatrixBot.Config) {
       super(ctx, config)
-      this.selfId = config.selfId
-      this.userId = `@${this.selfId}:${this.config.host}`
+      this.id = config.id || config.selfId
+      this.selfId = `@${this.id}:${this.config.host}`
+      this.userId = this.selfId
       this.endpoint = (config.endpoint || `https://${config.host}`) + '/_matrix'
       this.internal = new Matrix.Internal(this)
       ctx.plugin(HttpAdapter, this)
@@ -23,11 +24,11 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
     async initialize() {
       let user: Matrix.User
       try {
-        user = await this.internal.register(this.selfId, this.config.asToken)
+        user = await this.internal.register(this.id, this.config.asToken)
       } catch (e) {
         if (e.response.status !== 400 && e.data.errcode !== 'M_USER_IN_USE') throw e
       }
-      if (!user) user = await this.internal.login(this.selfId, this.config.asToken)
+      if (!user) user = await this.internal.login(this.id, this.config.asToken)
       this.http = this.ctx.http.extend({
         ...this.config,
         endpoint: this.endpoint,
@@ -152,16 +153,16 @@ export namespace MatrixBot {
   export interface Config extends Bot.Config, Quester.Config {
     name?: string
     avatar?: string
-    selfId?: string
+    id?: string
     hsToken?: string
     asToken?: string
     host?: string
   }
 
-  export const Config = Schema.object({
+  export const Config: Schema<Config> = Schema.object({
     name: Schema.string().description('机器人的名称，如果设置了将会在启动时为机器人更改。'),
     avatar: Schema.string().description('机器人的头像地址，如果设置了将会在启动时为机器人更改。'),
-    selfId: Schema.string().description('机器人的 ID。机器人最后的用户名将会是 @${selfId}:${host}。').required(),
+    id: Schema.string().description('机器人的 ID。机器人最后的用户名将会是 @${id}:${host}。').required(),
     host: Schema.string().description('Matrix homeserver 域名。').required(),
     hsToken: Schema.string().description('hs_token').role('secret').required(),
     asToken: Schema.string().description('as_token').role('secret').required(),
