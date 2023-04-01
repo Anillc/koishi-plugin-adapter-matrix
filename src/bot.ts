@@ -9,11 +9,11 @@ export class MatrixBot extends Bot<MatrixBot.Config> {
     http: Quester
     id: string
     endpoint: string
-    internal: Matrix.Internal
     rooms: string[] = []
+    declare internal: Matrix.Internal
     constructor(ctx: Context, config: MatrixBot.Config) {
       super(ctx, config)
-      this.id = config.id || config.selfId
+      this.id = config.id
       this.selfId = `@${this.id}:${this.config.host}`
       this.userId = this.selfId
       this.endpoint = (config.endpoint || `https://${config.host}`) + '/_matrix'
